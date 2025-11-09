@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Function Files — College Dashboard (Noir)</title>
+<style>
+  :root{
+    --bg:#0a0c10; --ink:#e6e6e6; --muted:#9aa3af; --ring:#263244;
+    --gold:#d4af37; --blue:#46a0ff; --green:#32d17e; --red:#ff4d5a; --yellow:#ffd166; --purple:#a78bfa;
+  }
+  html,body{margin:0;background:radial-gradient(1200px 700px at 50% -20%,#10141c,var(--bg));color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .grain:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:3px 3px;mix-blend-mode:overlay;opacity:.35}
+  .wrap{max-width:1240px;margin:20px auto;padding:16px}
+  .titlebar{display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .brand{display:flex;gap:10px;align-items:center}
+  .reel{width:14px;height:14px;border-radius:50%;background:linear-gradient(180deg,#f4e08c,var(--gold));box-shadow:0 0 12px rgba(212,175,55,.55)}
+  .brand h1{margin:0;font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+  .enc{display:flex;gap:10px;align-items:center}
+  .enc .count{font-weight:800;color:#22d3ee}
+  .enc .streak{font-weight:800;color:#d4af37}
+  .tabs{display:flex;gap:8px;margin:12px 0 6px 0;flex-wrap:wrap}
+  .tab{cursor:pointer;border:1px solid var(--ring);background:#0b1016;color:#e5e7eb;border-radius:999px;padding:8px 12px;font-weight:700}
+  .tab.active{outline:2px solid var(--gold)}
+  .panel{border:1px solid var(--ring);border-radius:16px;background:linear-gradient(180deg,#0f131a,#0c1016);padding:12px;margin-top:8px}
+  .hudline{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .select, .input{border:1px solid var(--ring);background:#0b1016;color:var(--ink);border-radius:12px;padding:10px 12px}
+  .input{min-width:280px;flex:1}
+  .pill{font-size:12px;color:var(--muted)}
+  .bar{height:10px;background:#1f2937;border-radius:9999px;overflow:hidden}
+  .fill{height:100%;width:0%;background:linear-gradient(90deg,#8b5cf6,#22d3ee,#d4af37)}
+  .lvl{font-size:12px;color:#cbd5e1;margin-top:6px}
+  .grid{display:grid;grid-template-columns:2fr 1.2fr;gap:14px;margin-top:14px}
+  .tag{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#cfd3da;display:flex;gap:10px;align-items:center}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .btn{cursor:pointer;border:1px solid var(--ring);background:#0b1016;color:#e5e7eb;border-radius:12px;padding:10px 12px;font-weight:600}
+  .btn:hover{border-color:#3a475a}
+  .chip{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--ring);padding:8px 10px;border-radius:999px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .b{background:var(--blue)} .g{background:var(--green)} .r{background:var(--red)} .y{background:var(--yellow)} .p{background:var(--purple)}
+  .clues{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+  .card{border:1px solid var(--ring);border-radius:16px;background:#0a0d12;padding:10px;min-height:110px}
+  .card h4{margin:0 0 6px 0;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#cfd3da;display:flex;gap:8px;align-items:center}
+  .note{width:100%;min-height:68px;background:#0b0f14;border:1px solid #223044;border-radius:10px;color:#e5e7eb;padding:8px;resize:vertical}
+  .timer{font-variant-numeric:tabular-nums;font-weight:700;color:#cbd5e1}
+  .pulse{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 0 rgba(212,175,55,.6);background:var(--gold)}
+  .pulsing{animation:pulse .81s infinite ease-out}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(212,175,55,.7)}70%{box-shadow:0 0 0 14px rgba(212,175,55,0)}100%{box-shadow:0 0 0 0 rgba(212,175,55,0)}}
+  .mini{font-size:11px;color:#9aa3af}
+  .poster{border:1px solid var(--ring);border-radius:16px;overflow:hidden;background:#0a0c10;margin-top:12px}
+  .poster canvas{display:block;width:100%}
+  .player{border:1px solid var(--ring);border-radius:16px;overflow:hidden;background:#0b1016}
+  .player h2{font-size:12px;letter-spacing:.2em;text-transform:uppercase;margin:10px;color:#cfd3da}
+  .list{border:1px solid var(--ring);border-radius:12px;padding:10px;background:#0b0f14;color:#cbd5e1;min-height:52px}
+  .hidden{display:none}
+  @media(max-width:1020px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="wrap">
+  <div class="titlebar">
+    <div class="brand"><span class="reel"></span><h1>Function Files — College Dashboard</h1></div>
+    <div class="enc pill">?? Encouragement: <span id="enc-count" class="count">0</span> • ?? Streak: <span id="enc-streak" class="streak">0</span></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-panel="math">MAT 1033 — Equation Noir</button>
+    <button class="tab" data-panel="enc">ENC 1101 — Author Decode</button>
+    <button class="tab" data-panel="asl">ASL 1140 — Sign Signals</button>
+    <button class="tab" data-panel="sls">SLS 1122 — Mission Control</button>
+  </div>
+
+  <!-- MATH: College Algebra 14e -->
+  <section id="math" class="panel">
+    <div class="hudline">
+      <select id="chapter" class="select"><option value="">Select Chapter</option></select>
+      <select id="section" class="select"><option value="">Section</option></select>
+      <select id="problem" class="select" style="min-width:260px"><option value="">Pick Problem</option></select>
+      <button id="load" class="btn">?? Load Case</button>
+      <button id="random" class="btn">?? Random Case</button>
+      <div class="pill">Pick chapter ? section ? problem ? Load Case</div>
+    </div>
+
+    <div class="hudline" style="margin-top:10px">
+      <input id="equation" class="input" placeholder="Type or load an equation (e.g., 2x+3=11 or (x/3)+(x/6)=5)"/>
+      <button id="clearEq" class="btn">?? Clear</button>
+    </div>
+
+    <div class="hudline" style="margin-top:10px;gap:14px">
+      <div style="flex:1">
+        <div class="tag" style="color:var(--gold)">XP — Rank Track</div>
+        <div class="bar"><div id="xp" class="fill"></div></div>
+        <div id="lvl" class="lvl">Cadet</div>
+      </div>
+      <div class="player" style="flex:1">
+        <h2>Lo-Fi Playlist</h2>
+        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/1QC9tv5XLJUiNYW2nrmkCF?utm_source=generator" width="100%" height="120" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="tag">Color Hunt — Spot the pattern. Timers lock focus.</div>
+        <div class="row">
+          <span class="chip"><span class="dot b"></span> Blue • Variables & Powers</span>
+          <span class="chip"><span class="dot g"></span> Green • Coefficients</span>
+          <span class="chip"><span class="dot r"></span> Red • Sign Change</span>
+          <span class="chip"><span class="dot y"></span> Yellow • Constants</span>
+          <span class="chip"><span class="dot p"></span> Purple • Parentheses</span>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <span class="pulse" id="pulse-hunt"></span>
+          <button class="btn" id="t-hunt">?? 60s Hunt</button>
+          <span class="timer" id="clock-hunt">00:00</span>
+          <button class="btn" id="t-explain">?? 45s Explain</button>
+          <span class="timer" id="clock-explain">00:00</span>
+        </div>
+
+        <div class="clues">
+          <div class="card"><h4><span class="dot b"></span> Blue</h4><textarea id="blue" class="note" placeholder="x, y, x², vx, 1/x"></textarea></div>
+          <div class="card"><h4><span class="dot g"></span> Green</h4><textarea id="green" class="note" placeholder="2x, -5y, GCF? matching coeffs?"></textarea></div>
+          <div class="card"><h4><span class="dot r"></span> Red</h4><textarea id="red" class="note" placeholder="+/- flips, move sides, -( ) to distribute"></textarea></div>
+          <div class="card"><h4><span class="dot y"></span> Yellow</h4><textarea id="yellow" class="note" placeholder="lonely numbers, constants"></textarea></div>
+          <div class="card"><h4><span class="dot p"></span> Purple</h4><textarea id="purple" class="note" placeholder="( ), [ ], { }, distribute? factor?"></textarea></div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <span class="chip"><span class="dot g"></span><span class="mini">Method Hints ?</span></span>
+          <div id="hints" class="list"></div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="caseSolved" class="btn">?? Build Case Card</button>
+          <button id="enc-btn" class="btn">?? Add Encouragement</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="tag">Agent Debrief — say the move, not the words</div>
+        <div class="mini" style="margin-top:4px">“I chose <b>elimination</b> because coefficients match and signs oppose. Then I added the lines to kill x.”</div>
+        <div class="row" style="margin-top:8px">
+          <button id="rec-start" class="btn">?? Start</button>
+          <button id="rec-stop" class="btn" disabled>¦ Stop & Save</button>
+          <span id="rec-status" class="pill">Ready</span>
+        </div>
+        <div id="audio-list" class="mini" style="margin-top:8px"></div>
+
+        <div class="row" style="margin-top:12px">
+          <button id="save-json" class="btn">?? Save Notes (.json)</button>
+          <button id="save-png" class="btn">?? Save Case Poster (PNG)</button>
+          <button id="print-pdf" class="btn">?? Print/Save PDF</button>
+          <button id="reset" class="btn">?? Reset Local Data</button>
+        </div>
+
+        <div class="poster"><canvas id="poster" width="864" height="1296"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ENC: Author Decode (short, no essays) -->
+  <section id="enc" class="panel hidden">
+    <div class="tag">Author Decode — function hunting, not skimming</div>
+    <div class="hudline" style="margin-top:6px">
+      <textarea id="enc-text" class="input" placeholder="Paste a paragraph."></textarea>
+      <button id="enc-60" class="btn">?? 60s Color Hunt</button>
+      <span class="timer" id="enc-clock">00:00</span>
+    </div>
+    <div class="clues">
+      <div class="card"><h4><span class="dot b"></span> Main Idea (Blue)</h4><textarea id="enc-blue" class="note" placeholder="what the author DID"></textarea></div>
+      <div class="card"><h4><span class="dot g"></span> Proof (Green)</h4><textarea id="enc-green" class="note" placeholder="fact/example that shows it"></textarea></div>
+      <div class="card"><h4><span class="dot r"></span> Contrast (Red)</h4><textarea id="enc-red" class="note" placeholder="but / yet / however"></textarea></div>
+      <div class="card"><h4><span class="dot y"></span> Why It Matters (Yellow)</h4><textarea id="enc-yellow" class="note" placeholder="so what"></textarea></div>
+      <div class="card"><h4><span class="dot p"></span> Figurative/Emotional (Purple)</h4><textarea id="enc-purple" class="note" placeholder="metaphor/tone"></textarea></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="enc-build" class="btn">?? Build Summary Card</button>
+      <button id="enc-enc" class="btn">?? Encouragement</button>
+    </div>
+    <div class="poster"><canvas id="enc-poster" width="864" height="1296"></canvas></div>
+  </section>
+
+  <!-- ASL: Sign Signals (simple practice shell) -->
+  <section id="asl" class="panel hidden">
+    <div class="tag">ASL Practice — timing + quick notes</div>
+    <div class="hudline">
+      <input id="asl-topic" class="input" placeholder="Topic (e.g., Numbers 1–20, Family signs)"/>
+      <button id="asl-30" class="btn">?? 30s Practice</button>
+      <span class="timer" id="asl-clock">00:00</span>
+      <button id="asl-enc" class="btn">?? Encouragement</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="asl-rec-start" class="btn">?? Start (expressive)</button>
+      <button id="asl-rec-stop" class="btn" disabled>¦ Stop & Save</button>
+      <span id="asl-rec-status" class="pill">Ready</span>
+    </div>
+    <div id="asl-audio-list" class="mini" style="margin-top:8px"></div>
+    <div class="poster"><canvas id="asl-poster" width="864" height="1296"></canvas></div>
+  </section>
+
+  <!-- SLS: Mission Control (After-Action) -->
+  <section id="sls" class="panel hidden">
+    <div class="tag">After-Action — 3-question debrief</div>
+    <div class="clues" style="grid-template-columns:repeat(3,1fr)">
+      <div class="card"><h4>What worked?</h4><textarea id="sls-q1" class="note" placeholder="one move that helped"></textarea></div>
+      <div class="card"><h4>What didn’t?</h4><textarea id="sls-q2" class="note" placeholder="one trap to avoid"></textarea></div>
+      <div class="card"><h4>Next experiment?</h4><textarea id="sls-q3" class="note" placeholder="one change for tomorrow"></textarea></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="sls-build" class="btn">?? Build Mission Card</button>
+      <button id="sls-enc" class="btn">?? Encouragement</button>
+    </div>
+    <div class="poster"><canvas id="sls-poster" width="864" height="1296"></canvas></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const $$=s=>document.querySelectorAll(s);
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+  // Tabs
+  $$('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      $$('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const id=t.getAttribute('data-panel');
+      ['math','enc','asl','sls'].forEach(p=>$('#'+p).classList.toggle('hidden', p!==id));
+    });
+  });
+
+  // Encouragement counter (global)
+  const encCount=$("#enc-count"), encStreak=$("#enc-streak");
+  let enc=Number(localStorage.getItem("ff_enc_count")||0);
+  let streak=Number(localStorage.getItem("ff_enc_streak")||0);
+  function renderEnc(){encCount.textContent=enc; encStreak.textContent=streak;}
+  function bumpEnc(){enc++; streak++; localStorage.setItem("ff_enc_count",enc); localStorage.setItem("ff_enc_streak",streak); renderEnc();}
+  renderEnc();
+
+  // ---------- MATH (College Algebra 14e) ----------
+  const eq=$("#equation"), clearEq=$("#clearEq");
+  const notes={blue:$("#blue"),green:$("#green"),red:$("#red"),yellow:$("#yellow"),purple:$("#purple")};
+  const hints=$("#hints");
+  const xpFill=$("#xp"), lvl=$("#lvl");
+  let XP=Number(localStorage.getItem("ff_math_xp")||0);
+  const setXP=n=>{XP=Math.max(0,Math.min(100,n)); xpFill.style.width=XP+"%"; localStorage.setItem("ff_math_xp",XP); lvl.textContent=XP<25?"Cadet":XP<50?"Analyst":XP<75?"Specialist":"Director";};
+  setXP(XP); const bumpXP=n=>setXP(XP+n);
+
+  function pad(n){return String(n).padStart(2,"0")}
+  function runTimer(sec, clockEl, pulseEl, onEnd){
+    pulseEl && pulseEl.classList.add("pulsing");
+    let r=sec; clockEl.textContent=`00:${pad(r)}`;
+    const id=setInterval(()=>{ r--; const mm=pad(Math.floor((sec-r)/60)), ss=pad(r); clockEl.textContent=`${mm}:${ss}`; if(r<=0){clearInterval(id); pulseEl&&pulseEl.classList.remove("pulsing"); clockEl.textContent="??"; onEnd&&onEnd();}},1000);
+  }
+  $("#t-hunt").addEventListener("click",()=>runTimer(60,$("#clock-hunt"),$("#pulse-hunt"),()=>alert("Hunt complete. Pick your method.")));
+  $("#t-explain").addEventListener("click",()=>runTimer(45,$("#clock-explain"),null,()=>alert("Explain it. Record your debrief.")));
+
+  // Recorder (math)
+  let mStream,mRec,mChunks=[];
+  async function mic(){ if(mStream) return mStream; mStream=await navigator.mediaDevices.getUserMedia({audio:true}); return mStream; }
+  const mStart=$("#rec-start"), mStop=$("#rec-stop"), mStatus=$("#rec-status"), mList=$("#audio-list");
+  mStart.addEventListener("click", async ()=>{
+    try{ await mic(); mChunks=[]; mRec=new MediaRecorder(mStream,{mimeType:"audio/webm"});
+      mRec.ondataavailable=e=>{ if(e.data.size>0) mChunks.push(e.data); };
+      mRec.onstop=()=>{ const blob=new Blob(mChunks,{type:"audio/webm"}), url=URL.createObjectURL(blob); const name=("CaseNote_"+new Date().toISOString().replace(/[:.]/g,"-")+".webm"); const row=document.createElement("div"); row.innerHTML=`<div>${name}</div><audio controls src="${url}" style="width:100%"></audio>`; mList.prepend(row); const a=document.createElement("a"); a.href=url; a.download=name; a.click(); mStatus.textContent="Saved"; mStart.disabled=false; mStop.disabled=true; bumpXP(12); bumpEnc(); alert(pick(["Pattern is proof.","Case closed.","Director move.","Clean logic."])); };
+      mRec.start(); mStatus.textContent="Recording…"; mStart.disabled=true; mStop.disabled=false;
+    }catch{ alert("Mic blocked. Allow microphone."); }
+  });
+  mStop.addEventListener("click",()=>{ if(mRec && mRec.state!=="inactive") mRec.stop(); });
+
+  // College Algebra 14e (Lial/Hornsby/McGinnis) — concise TOC + starters
+  const bank={
+    chR:{title:"Chapter R — Algebra Essentials",
+      sections:{
+        "R.1 Real Numbers & Exponents":["(2^3)(2^-1)","x^-3/y^2 rewrite","(10^-2)(10^5)"],
+        "R.2 Polynomials & Operations":["(3x^2-2x+1)+(x^2+5x-4)","(x-3)(x+7)","(6x^3-9x^2)/3x"],
+        "R.3 Factoring Review":["x^2+5x+6","2x^2+7x+3","x^2-9"],
+        "R.4 Rational Expressions":["(x^2-9)/(x^2-x-6)","x/3 + x/6","Complex fraction simplify"]
+      }},
+    ch1:{title:"Ch 1 — Linear Equations, Inequalities, Models",
+      sections:{
+        "1.1 Linear Equations":["2x+3=11","5(x-2)=3x+8","(x/4)+7=10"],
+        "1.2 Linear Models":["Intercepts 4x+5y=20","A(x)=2.5x+15; A(40)","Avg rate f(x)=3x-1 on [2,6]"],
+        "1.3 Inequalities & Absolute Value":["3x-5>10","-2(4-x)=6","|2x-3|=9"]
+      }},
+    ch2:{title:"Ch 2 — Functions & Graphs",
+      sections:{
+        "2.1 Function Basics":["Function? y=3x+2","Dom f=v(x-3)","f(2) for x^2-3x+1"],
+        "2.2 Transformations":["(x-2)^2+3","-|x+1|+4","g(x)=-(x+3)^2+1 from x^2"],
+        "2.3 Composition & Inverse":["f°g: f=2x+1,g=x^2","Inverse (x-5)/3","One-to-one test"]
+      }},
+    ch3:{title:"Ch 3 — Polynomial & Rational Functions",
+      sections:{
+        "3.1 Quadratic Graphs/Forms":["Vertex x^2-4x+3","Axis -2x^2+8x-5","Max/min -x^2+6x-8"],
+        "3.2 Zeros & Division":["Divide (2x^3-3x^2-8x+12)/(x-2)","Rational zeros of 2x^3-3x^2-8x+12","End behavior -x^3+4x"],
+        "3.3 Rational Functions":["Asymptotes (x+1)/(x-2)","Intercepts (x^2-1)/(x-1)","Domain & holes"]
+      }},
+    ch4:{title:"Ch 4 — Systems & Matrices",
+      sections:{
+        "4.1 Substitution":["y=2x+5;3x-y=7","x=4-2y;3x+5y=9","y=x^2 and y=3-x"],
+        "4.2 Elimination":["2x+3y=7; -2x+y=1","3x-2y=8;6x-4y=16","3-var (structure)"],
+        "4.3 Matrices/Gaussian":["Row-reduce 2×2","Solve with A^-1 (2×2)","Inconsistent vs dependent"]
+      }},
+    ch5:{title:"Ch 5 — Exponential & Logarithmic",
+      sections:{
+        "5.1 Exponentials":["f=3(1.2)^x:f(0),f(3)","Solve 2·3^x=54","Half-life model"],
+        "5.2 Logs & Properties":["Expand/condense","log_3(x-1)=2","2^x=7 via logs"],
+        "5.3 Exp/Log Equations/Models":["e^{2x}=5","A=Pe^{rt}","Logistic-style pick"]
+      }},
+    ch6:{title:"Ch 6 — Conics",
+      sections:{
+        "6.1 Parabolas":["(x-2)^2=8(y+1)","y^2+4y+4=8x ? std","Focus/directrix"],
+        "6.2 Ellipses & Hyperbolas":["x^2/9+y^2/4=1","x^2/25-y^2/9=1","Center/axes/asymptotes"]
+      }},
+    ch7:{title:"Ch 7 — Sequences, Series, Counting, Probability",
+      sections:{
+        "7.1 Sequences & Sigma":["a1=5,d=3 ? a7","S(2k+1),k=1..5","a1=6,r=1/2 ? a6"],
+        "7.2 Series & Apps":["S20 for a1=2,d=4","8 geometric r=0.2","Find n: S_n=210,a1=3,d=3"],
+        "7.3 Counting & Probability":["P(9,5)","C(10,3)","P(A?B) with overlap"]
+      }}
+  };
+
+  const chapter=$("#chapter"), section=$("#section"), problem=$("#problem");
+  (function initMenus(){ const opts=Object.keys(bank).map(k=>`<option value="${k}">${bank[k].title}</option>`).join(''); chapter.insertAdjacentHTML('beforeend',opts); })();
+
+  function fillSections(){
+    section.innerHTML='<option value="">Section</option>';
+    problem.innerHTML='<option value="">Pick Problem</option>';
+    const ch=bank[chapter.value]; if(!ch) return;
+    Object.keys(ch.sections).forEach(sec=>{
+      const opt=document.createElement("option"); opt.value=sec; opt.textContent=sec; section.appendChild(opt);
+    });
+  }
+  function fillProblems(){
+    problem.innerHTML='<option value="">Pick Problem</option>';
+    const ch=bank[chapter.value]; if(!ch) return;
+    (ch.sections[section.value]||[]).forEach((p,i)=>{ const opt=document.createElement("option"); opt.value=p; opt.textContent=`#${i+1} — ${p}`; problem.appendChild(opt); });
+  }
+  chapter.addEventListener("change",fillSections);
+  section.addEventListener("change",fillProblems);
+  $("#load").addEventListener("click",()=>{ if(problem.value){ eq.value=problem.value; saveMath(); computeHints(); }});
+  $("#random").addEventListener("click",()=>{
+    const chKeys=Object.keys(bank); const chPick=bank[pick(chKeys)];
+    const secKeys=Object.keys(chPick.sections); const s=chPick.sections[pick(secKeys)];
+    const p=s[Math.floor(Math.random()*s.length)];
+    eq.value=p; saveMath(); computeHints();
+  });
+  clearEq.addEventListener("click",()=>{eq.value=""; saveMath(); computeHints();});
+
+  // Hints
+  function computeHints(){
+    const B=notes.blue.value, G=notes.green.value, R=notes.red.value, P=notes.purple.value, E=eq.value, line=[];
+    if(/[\(\[\{]/.test(P) || /-\s*\(/.test(E)) line.push("?? Distribute/Unlock groups first.");
+    if(/\bmatch\b|\bopp/i.test(G) || /(2x.*-2x|3y.*-3y)/i.test(E)) line.push("???? Elimination: aligned coeffs, opposite signs.");
+    if(/\bsolve for\b|y=|x=/.test(B+G+E)) line.push("? Substitution: one variable is isolated.");
+    if(/x\^2|\^2|quadratic/i.test(B+E)) line.push("? Factor if clean; else Quadratic Formula.");
+    if(/\/x|x\/|\/\(/.test(E)) line.push("LCD: clear denominators, then solve. Check extraneous.");
+    if(/v|\bsqrt\b/i.test(E)) line.push("Isolate radical, square, check extraneous.");
+    if(/flip|change|-\s*\(/i.test(R+E)) line.push("Fix sign traps before combining.");
+    if(!line.length) line.push("Collect like terms, isolate the variable, sanity-check.");
+    hints.textContent=line.join("  •  ");
+  }
+  Object.values(notes).forEach(n=>n.addEventListener("input",()=>{saveMath(); computeHints(); bumpXP(2);} ));
+  eq.addEventListener("input",()=>{saveMath(); computeHints();});
+
+  // Poster (math)
+  const poster=$("#poster"); const mctx=poster.getContext("2d");
+  function wrap(ctx,text,x,y,maxW,lineH){const w=String(text||"").split(/\s+/);let line="",yy=y;const push=t=>ctx.fillText(t,x,yy);
+    for(let i=0;i<w.length;i++){const t=line+w[i]+" "; if(ctx.measureText(t).width>maxW && i>0){push(line.trim()); line=w[i]+" "; yy+=lineH;} else line=t;} push(line.trim());
+  }
+  function drawMathPoster(tagline){
+    const W=poster.width,H=poster.height;
+    const g=mctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#0b0f16"); g.addColorStop(1,"#07090d");
+    mctx.fillStyle=g; mctx.fillRect(0,0,W,H);
+    const vg=mctx.createRadialGradient(W/2,H/2,0,W/2,H/2,H*.7);
+    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)'); mctx.fillStyle=vg; mctx.fillRect(0,0,W,H);
+    mctx.fillStyle="#d4af37"; mctx.font='900 44px "Bebas Neue", Arial, sans-serif'; mctx.textAlign='left';
+    mctx.fillText("CASE FILE — FUNCTION BUREAU",64,110);
+    mctx.strokeStyle='rgba(212,175,55,.5)'; mctx.lineWidth=2; mctx.beginPath(); mctx.moveTo(64,130); mctx.lineTo(W-64,130); mctx.stroke();
+    mctx.fillStyle="#cfd4dd"; mctx.font='700 24px Inter,Arial'; mctx.fillText("Equation",64,180);
+    mctx.font='400 24px Inter,Arial'; wrap(mctx, eq.value||"—",64,210,W-128,30);
+    const blocks=[
+      ["BLUE • Variables & Powers","#46a0ff",notes.blue.value],
+      ["GREEN • Coefficients","#32d17e",notes.green.value],
+      ["RED • Sign Change","#ff4d5a",notes.red.value],
+      ["YELLOW • Constants","#ffd166",notes.yellow.value],
+      ["PURPLE • Parentheses","#a78bfa",notes.purple.value]
+    ];
+    let y=300; blocks.forEach(([label,color,text])=>{ mctx.fillStyle=color; mctx.font='700 16px Inter'; mctx.fillText(label,64,y); y+=24; mctx.fillStyle="#dce1e8"; mctx.font='400 22px Inter'; wrap(mctx,text||"—",64,y,W-128,28); y+=86;});
+    mctx.fillStyle="#8b95a7"; mctx.font='700 16px Inter'; mctx.fillText("METHOD HINT",64,H-230);
+    mctx.fillStyle="#dce1e8"; mctx.font='400 20px Inter'; wrap(mctx,hints.textContent||"—",64,H-200,W-128,26);
+    mctx.fillStyle="#8b95a7"; mctx.font='700 14px Inter'; mctx.fillText("CLOSING LINE",64,H-120);
+    mctx.fillStyle="#cfd4dd"; mctx.font='italic 20px Inter'; wrap(mctx,tagline||"Every equation leaves a clue.",64,H-95,W-128,26);
+    mctx.fillStyle='#6b7280'; mctx.font='12px Inter'; mctx.fillText(new Date().toLocaleString(),64,H-36);
+    mctx.textAlign='right'; mctx.fillText("Equation Noir — College Algebra 14e",W-64,H-36);
+    mctx.textAlign='left';
+  }
+  $("#caseSolved").addEventListener("click",()=>{ drawMathPoster(pick(["Pattern is the fastest teacher.","Solve the structure, not the sentence.","Balance first. Brag later.","Method chosen. Case closed."])); bumpXP(10); bumpEnc(); });
+  $("#save-json").addEventListener("click",()=>{ const data={when:new Date().toISOString(),eq:eq.value,notes:{blue:notes.blue.value,green:notes.green.value,red:notes.red.value,yellow:notes.yellow.value,purple:notes.purple.value},hints:hints.textContent,xp:XP,enc:{count:enc,streak:streak}}; const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="math_case.json"; a.click(); });
+  $("#save-png").addEventListener("click",()=>{ const a=document.createElement("a"); a.href=poster.toDataURL("image/png"); a.download="math_case.png"; a.click(); });
+  $("#print-pdf").addEventListener("click",()=>{ const w=window.open("","_blank","width=900,height=1200"); const img=poster.toDataURL("image/png"); w.document.write(`<title>Case Card</title><style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center}img{width:720px;max-width:92vw}</style><img src="${img}">`); w.document.close(); setTimeout(()=>w.print(),400); });
+  $("#reset").addEventListener("click",()=>{ if(!confirm("Reset local data for Math panel?")) return; localStorage.removeItem("ff_math_xp"); localStorage.removeItem("ff_math_ls"); Object.values(notes).forEach(n=>n.value=""); eq.value=""; hints.textContent=""; setXP(0); drawMathPoster("Fresh reel. New case."); });
+
+  function saveMath(){ localStorage.setItem("ff_math_ls", JSON.stringify({eq:eq.value, blue:notes.blue.value, green:notes.green.value, red:notes.red.value, yellow:notes.yellow.value, purple:notes.purple.value})); }
+  (function loadMath(){ const raw=localStorage.getItem("ff_math_ls"); if(!raw) return; try{const d=JSON.parse(raw); eq.value=d.eq||""; notes.blue.value=d.blue||""; notes.green.value=d.green||""; notes.red.value=d.red||""; notes.yellow.value=d.yellow||""; notes.purple.value=d.purple||"";}catch{}})();
+  drawMathPoster("Every equation leaves a clue."); computeHints();
+  [eq,...Object.values(notes)].forEach(el=>el.addEventListener("input",saveMath));
+  $("#enc-btn").addEventListener("click",()=>{bumpEnc();});
+
+  // ---------- ENC (Author Decode) ----------
+  const encText=$("#enc-text"), encBlue=$("#enc-blue"),encGreen=$("#enc-green"),encRed=$("#enc-red"),encYellow=$("#enc-yellow"),encPurple=$("#enc-purple");
+  function encTimer(){ runTimer(60,$("#enc-clock"),null,()=>alert("Hunt done. Capture the function line.")); }
+  $("#enc-60").addEventListener("click",encTimer);
+  $("#enc-enc").addEventListener("click",bumpEnc);
+  const encCanvas=$("#enc-poster"), ectx=encCanvas.getContext("2d");
+  $("#enc-build").addEventListener("click",()=>{
+    const W=encCanvas.width,H=encCanvas.height;
+    const g=ectx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#0b0f16"); g.addColorStop(1,"#07090d");
+    ectx.fillStyle=g; ectx.fillRect(0,0,W,H);
+    ectx.fillStyle="#d4af37"; ectx.font='900 44px "Bebas Neue", Arial'; ectx.fillText("AUTHOR DECODE — FIELD CARD",64,110);
+    ectx.strokeStyle='rgba(212,175,55,.5)'; ectx.beginPath(); ectx.moveTo(64,130); ectx.lineTo(W-64,130); ectx.stroke();
+    ectx.fillStyle="#cfd4dd"; ectx.font='700 24px Inter'; ectx.fillText("Paragraph",64,180);
+    ectx.font='400 20px Inter'; wrap(ectx,encText.value||"—",64,210,W-128,26);
+    const blocks=[["BLUE • Main Idea","#46a0ff",encBlue.value],["GREEN • Proof","#32d17e",encGreen.value],["RED • Contrast","#ff4d5a",encRed.value],["YELLOW • Why It Matters","#ffd166",encYellow.value],["PURPLE • Figurative/Tone","#a78bfa",encPurple.value]];
+    let y=340; blocks.forEach(([L,C,T])=>{ ectx.fillStyle=C; ectx.font='700 16px Inter'; ectx.fillText(L,64,y); y+=24; ectx.fillStyle="#dce1e8"; ectx.font='400 20px Inter'; wrap(ectx,T||"—",64,y,W-128,24); y+=74;});
+  });
+
+  // ---------- ASL ----------
+  const aslCanvas=$("#asl-poster"), actx=aslCanvas.getContext("2d");
+  function aslTimer(){ runTimer(30,$("#asl-clock"),null,()=>alert("Time. Save your quick take.")); }
+  $("#asl-30").addEventListener("click",aslTimer);
+  $("#asl-enc").addEventListener("click",bumpEnc);
+  let aStream,aRec,aChunks=[];
+  const aStart=$("#asl-rec-start"), aStop=$("#asl-rec-stop"), aStatus=$("#asl-rec-status"), aList=$("#asl-audio-list");
+  aStart.addEventListener("click", async ()=>{
+    try{ aStream = aStream || await navigator.mediaDevices.getUserMedia({audio:true}); aChunks=[]; aRec=new MediaRecorder(aStream,{mimeType:"audio/webm"});
+      aRec.ondataavailable=e=>{ if(e.data.size>0) aChunks.push(e.data); };
+      aRec.onstop=()=>{ const blob=new Blob(aChunks,{type:"audio/webm"}), url=URL.createObjectURL(blob); const name=("ASLNote_"+new Date().toISOString().replace(/[:.]/g,"-")+".webm"); const row=document.createElement("div"); row.innerHTML=`<div>${name}</div><audio controls src="${url}" style="width:100%"></audio>`; aList.prepend(row); const a=document.createElement("a"); a.href=url; a.download=name; a.click(); aStatus.textContent="Saved"; aStart.disabled=false; aStop.disabled=true; bumpEnc(); };
+      aRec.start(); aStatus.textContent="Recording…"; aStart.disabled=true; aStop.disabled=false;
+    }catch{ alert("Mic blocked. Allow microphone."); }
+  });
+  aStop.addEventListener("click",()=>{ if(aRec && aRec.state!=="inactive") aRec.stop(); });
+  $("#asl-topic").addEventListener("input",()=>{ const W=aslCanvas.width,H=aslCanvas.height; const g=actx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#0b0f16"); g.addColorStop(1,"#07090d"); actx.fillStyle=g; actx.fillRect(0,0,W,H); actx.fillStyle="#d4af37"; actx.font='900 44px "Bebas Neue", Arial'; actx.fillText("ASL PRACTICE — FIELD CARD",64,110); actx.strokeStyle='rgba(212,175,55,.5)'; actx.beginPath(); actx.moveTo(64,130); actx.lineTo(W-64,130); actx.stroke(); actx.fillStyle="#cfd4dd"; actx.font='700 24px Inter'; actx.fillText("Topic",64,180); actx.font='400 24px Inter'; wrap(actx,$("#asl-topic").value||"—",64,210,W-128,28); });
+
+  // ---------- SLS ----------
+  const slsCanvas=$("#sls-poster"), sctx=slsCanvas.getContext("2d");
+  $("#sls-build").addEventListener("click",()=>{
+    const W=slsCanvas.width,H=slsCanvas.height;
+    const g=sctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#0b0f16"); g.addColorStop(1,"#07090d");
+    sctx.fillStyle=g; sctx.fillRect(0,0,W,H);
+    sctx.fillStyle="#d4af37"; sctx.font='900 44px "Bebas Neue", Arial'; sctx.fillText("AFTER-ACTION — MISSION CARD",64,110);
+    sctx.strokeStyle='rgba(212,175,55,.5)'; sctx.beginPath(); sctx.moveTo(64,130); sctx.lineTo(W-64,130); sctx.stroke();
+    const blocks=[["What worked?",$("#sls-q1").value],["What didn’t?",$("#sls-q2").value],["Next experiment?",$("#sls-q3").value]];
+    let y=200; blocks.forEach(([L,T])=>{ sctx.fillStyle="#cfd4dd"; sctx.font='700 22px Inter'; sctx.fillText(L,64,y); y+=26; sctx.font='400 20px Inter'; sctx.fillStyle="#dce1e8"; wrap(sctx,T||"—",64,y,W-128,24); y+=90;});
+  });
+  $("#sls-enc").addEventListener("click",bumpEnc);
+
+})();
+</script>
+</body>
+</html>
+
