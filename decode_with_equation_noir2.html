@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Equation Noir — V2 (3×10 Rolling)</title>
+<style>
+  :root{
+    --bg:#0a0c10; --ink:#e6e6e6; --muted:#9aa3af; --ring:#263244;
+    --gold:#d4af37; --blue:#46a0ff; --green:#32d17e; --red:#ff4d5a; --yellow:#ffd166; --purple:#a78bfa;
+  }
+  html,body{margin:0;background:radial-gradient(1200px 700px at 50% -20%,#10141c,var(--bg));color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:1180px;margin:20px auto;padding:16px}
+  .titlebar{display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .brand{display:flex;gap:10px;align-items:center}
+  .reel{width:14px;height:14px;border-radius:50%;background:linear-gradient(180deg,#f4e08c,var(--gold));box-shadow:0 0 12px rgba(212,175,55,.55)}
+  .brand h1{margin:0;font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+  .enc{display:flex;gap:10px;align-items:center}
+  .enc .count{font-weight:800;color:#22d3ee}
+  .enc .streak{font-weight:800;color:#d4af37}
+  .panel{border:1px solid var(--ring);border-radius:16px;background:linear-gradient(180deg,#0f131a,#0c1016);padding:12px;margin-top:12px}
+  .tag{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#cfd3da;display:flex;gap:10px;align-items:center}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .select,.input,.note{border:1px solid var(--ring);background:#0b1016;color:#e6e6e6;border-radius:12px;padding:10px 12px}
+  .input{flex:1;min-width:240px}
+  .note{width:100%;min-height:96px;resize:vertical}
+  .btn{cursor:pointer;border:1px solid var(--ring);background:#0b1016;color:#e5e7eb;border-radius:12px;padding:10px 12px;font-weight:600}
+  .btn:hover{border-color:#3a475a}
+  .bar{height:14px;background:#1f2937;border-radius:9999px;overflow:hidden;position:relative}
+  .fill{height:100%;width:0%}
+  .phase1{background:linear-gradient(90deg,#46a0ff,#7cd3ff)}
+  .phase2{background:linear-gradient(90deg,#32d17e,#a7f3d0)}
+  .phase3{background:linear-gradient(90deg,#ffd166,#ffe49b)}
+  .timerline{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .badge{font-size:12px;border:1px solid var(--ring);padding:6px 10px;border-radius:999px;color:#cbd5e1}
+  .chip{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--ring);padding:8px 10px;border-radius:999px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .b{background:var(--blue)} .g{background:var(--green)} .r{background:var(--red)} .y{background:var(--yellow)} .p{background:var(--purple)}
+  .dna{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .token{border-radius:8px;padding:4px 8px;font-size:12px;color:#0a0c10;font-weight:700}
+  .token.b{background:var(--blue)} .token.g{background:var(--green)} .token.r{background:var(--red)} .token.y{background:var(--yellow)} .token.p{background:var(--purple)}
+  canvas{width:100%;max-height:320px;border:1px solid var(--ring);border-radius:14px;background:#0b1016}
+  .tooltip{position:relative;cursor:help;border-bottom:1px dotted #64748b}
+  .tooltip:hover::after{
+    content:attr(data-tip); position:absolute; left:0; top:120%; width:280px; 
+    background:#0b1016; border:1px solid #324155; color:#e5e7eb; padding:10px; border-radius:10px; z-index:10
+  }
+  .overlay{position:fixed;inset:0;background:rgba(10,12,16,.84);display:none;align-items:center;justify-content:center;z-index:999}
+  .overlay .card{max-width:580px;border:1px solid var(--ring);background:#0c1117;color:#eaeef5;border-radius:16px;padding:22px;text-align:center}
+  .overlay .card h2{margin:0 0 8px 0;color:var(--gold);letter-spacing:.08em}
+  .mini{font-size:12px;color:#9aa3af}
+  @media(max-width:900px){.row{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="titlebar">
+    <div class="brand"><span class="reel"></span><h1>Equation Noir — V2</h1></div>
+    <div class="enc pill">👏 Encouragement: <span id="enc-count" class="count">0</span> • 🔥 Streak: <span id="enc-streak" class="streak">0</span></div>
+  </div>
+
+  <!-- Soundtrack -->
+  <section class="panel">
+    <div class="tag">Focus Soundtrack</div>
+    <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/5s4tOejaBZr2YsTm0kpiqz?utm_source=generator"
+      width="100%" height="120" frameborder="0"
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      loading="lazy"></iframe>
+  </section>
+
+  <!-- Rolling Timers -->
+  <section class="panel">
+    <div class="tag">3×10 Rolling Sessions — Auto-start</div>
+    <div id="phaseLabel" class="badge">Phase 1 • First Pass</div>
+    <div class="timerline">
+      <div class="bar" style="flex:1"><div id="fill" class="fill phase1"></div></div>
+      <div id="clock" class="badge">10:00</div>
+    </div>
+    <div class="mini">Sequence: First Pass → 90s break → Remix → 90s break → Recall. Goes by itself. If he pushes past 10:00, the encouragement pops and it rolls to the next section.</div>
+  </section>
+
+  <!-- Problem Pad -->
+  <section class="panel">
+    <div class="tag">Problem Pad</div>
+    <div class="row">
+      <select id="ptype" class="select" title="Problem type">
+        <option value="">Select Type</option>
+        <option>Linear</option><option>Quadratic</option><option>Polynomial</option>
+        <option>Rational</option><option>Radical</option><option>System</option>
+      </select>
+      <select id="psub" class="select" title="Sub-skill">
+        <option value="">Sub-skill</option>
+        <option>Isolate</option><option>Factor</option><option>Simplify</option>
+        <option>Clear Denominators</option><option>Graph</option><option>Intercepts</option>
+      </select>
+      <button id="encBtn" class="btn">👏 Encouragement</button>
+    </div>
+    <textarea id="ptext" class="note" placeholder="Write or paste your full problem. For graphing, use y = expression (e.g., y = 2x + 3 or y = x^2 - 4x + 1)."></textarea>
+  </section>
+
+  <!-- Color Hunt + DNA strip -->
+  <section class="panel">
+    <div class="tag">Color Hunt — Function DNA</div>
+    <div class="row">
+      <span class="chip"><span class="dot b"></span> Blue • Variables & Powers</span>
+      <span class="chip"><span class="dot g"></span> Green • Coefficients</span>
+      <span class="chip"><span class="dot r"></span> Red • Sign Change</span>
+      <span class="chip"><span class="dot y"></span> Yellow • Constants</span>
+      <span class="chip"><span class="dot p"></span> Purple • Parentheses</span>
+    </div>
+    <div class="dna" id="dna"></div>
+    <div class="row">
+      <textarea id="blue" class="note" placeholder="Blue: x, y, x^2, 1/x, √x"></textarea>
+      <textarea id="green" class="note" placeholder="Green: 2x, -5y, GCF, matched coefficients"></textarea>
+      <textarea id="red" class="note" placeholder="Red: + or − flips, move sides, -( ) distribute"></textarea>
+      <textarea id="yellow" class="note" placeholder="Yellow: lonely numbers / constants"></textarea>
+      <textarea id="purple" class="note" placeholder="Purple: ( ), [ ], { } • distribute? factor?"></textarea>
+    </div>
+  </section>
+
+  <!-- Graph -->
+  <section class="panel">
+    <div class="tag">Simple Plot</div>
+    <div class="row">
+      <input id="expr" class="input" placeholder="Enter y = expression (e.g., y = 0.5x^2 - 3x + 2)"/>
+      <button id="graphBtn" class="btn">📈 Graph</button>
+      <button id="clearGraph" class="btn">🧹 Clear</button>
+    </div>
+    <canvas id="graph" width="900" height="320"></canvas>
+    <div class="mini">Tip: This simple plot expects <b>y = ...</b> with x as the variable. Use ^ for powers (e.g., x^2). Functions allowed: sin, cos, tan, sqrt, abs, log, exp.</div>
+  </section>
+
+  <!-- Real-Talk Dictionary -->
+  <section class="panel">
+    <div class="tag">Real-Talk Math Dictionary (hover)</div>
+    <div class="row">
+      <span class="tooltip" data-tip="The number riding with x. Example: 5 in 5x."><b>Coefficient</b></span>
+      <span class="tooltip" data-tip="Where the line hits the axes. x-intercept: where y=0. y-intercept: where x=0."><b>Intercept</b></span>
+      <span class="tooltip" data-tip="Allowed inputs for x. Streets your x can walk on without breaking math."><b>Domain</b></span>
+      <span class="tooltip" data-tip="Curve life. Has a bounce or a bowl. Standard form ax^2+bx+c."><b>Quadratic</b></span>
+      <span class="tooltip" data-tip="Fractions in the mix, watch for holes/asymptotes."><b>Rational</b></span>
+      <span class="tooltip" data-tip="Grouping changes everything. Clear it or use it."><b>Parentheses</b></span>
+    </div>
+  </section>
+</div>
+
+<!-- Overlay for breaks and encouragement -->
+<div id="overlay" class="overlay">
+  <div class="card">
+    <h2 id="overlayTitle">Break</h2>
+    <p id="overlayMsg">Breathe. Brain’s reloading files for the next move.</p>
+    <p class="mini" id="overlaySub">It will continue automatically.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const encCount=$("#enc-count"), encStreak=$("#enc-streak");
+  let enc=Number(localStorage.getItem("v2_enc")||0);
+  let streak=Number(localStorage.getItem("v2_streak")||0);
+  const renderEnc=()=>{encCount.textContent=enc; encStreak.textContent=streak;};
+  const bumpEnc=()=>{enc++; streak++; localStorage.setItem("v2_enc",enc); localStorage.setItem("v2_streak",streak); renderEnc();};
+  renderEnc();
+  $("#encBtn").addEventListener("click", bumpEnc);
+
+  // === Rolling Timers (3×10 with auto breaks) ===
+  const phases=[
+    {name:"Phase 1 • First Pass", secs:600, cls:"phase1"},
+    {name:"Break", secs:90, break:true},
+    {name:"Phase 2 • Remix", secs:600, cls:"phase2"},
+    {name:"Break", secs:90, break:true},
+    {name:"Phase 3 • Recall", secs:600, cls:"phase3"}
+  ];
+  let idx=0, remain=phases[0].secs, tickId=null, beyondShown=false;
+  const phaseLabel=$("#phaseLabel"), clock=$("#clock"), fill=$("#fill"), overlay=$("#overlay"), overlayTitle=$("#overlayTitle"), overlayMsg=$("#overlayMsg"), overlaySub=$("#overlaySub");
+
+  function format(t){const m=Math.floor(t/60), s=t%60; return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+  function setPhase(i,autoStart=true){
+    const p=phases[i]; idx=i; remain=p.secs; beyondShown=false;
+    phaseLabel.textContent=p.name;
+    fill.className="fill "+(p.cls||"");
+    fill.style.width="0%";
+    clock.textContent=format(remain);
+    if(p.break){
+      overlay.style.display="flex";
+      overlayTitle.textContent="Break";
+      overlayMsg.textContent=i===1? "Good run. Brain’s reloading files for the next move." : "Pattern shift time — stretch, breathe, check the vibe.";
+      overlaySub.textContent="Continuing automatically…";
+    } else {
+      overlay.style.display="none";
+    }
+    if(autoStart) startTick();
+  }
+  function startTick(){
+    clearInterval(tickId);
+    const total=phases[idx].secs;
+    tickId=setInterval(()=>{
+      remain--;
+      const p=phases[idx];
+      // progress
+      const prog=Math.max(0, Math.min(1, 1 - remain/total));
+      fill.style.width=(prog*100)+"%";
+      clock.textContent=format(Math.max(remain,0));
+      // encouragement trigger when going beyond 10:00 (0) for phase blocks
+      if(!p.break && remain<=0 && !beyondShown){
+        beyondShown=true;
+        // show encouragement line once, then roll to next after 3s
+        overlay.style.display="flex";
+        overlayTitle.textContent="Big Things";
+        overlayMsg.textContent="I see you doing big things, and your brain wants you to do big things in the next section.";
+        overlaySub.textContent="Rolling ahead…";
+        bumpEnc();
+        setTimeout(()=>{ overlay.style.display="none"; nextPhase(); }, 2600);
+      }
+      if(p.break && remain<=0){
+        nextPhase();
+      }
+    },1000);
+  }
+  function nextPhase(){
+    clearInterval(tickId);
+    if(idx >= phases.length-1){ // end of sequence
+      overlay.style.display="flex";
+      overlayTitle.textContent="Case Closed";
+      overlayMsg.textContent="30-Minute Director Streak. Save your notes and go live life.";
+      overlaySub.textContent="Reload later to start a new set.";
+      return;
+    }
+    setPhase(idx+1,true);
+  }
+  // autostart on load
+  setPhase(0,true);
+
+  // === Function DNA strip from text ===
+  const dna=$("#dna"), ptext=$("#ptext");
+  function buildDNA(){
+    const s=(ptext.value||"").replace(/\s+/g,"");
+    dna.innerHTML="";
+    if(!s) return;
+    // simple token discovery
+    const paren = (s.match(/[\(\)\[\]\{\}]/g)||[]).length;
+    const vars  = (s.match(/\b[a-z](?![a-z])/ig)||[]); // single letters
+    const powers= (s.match(/\^(\d+)/g)||[]).map(m=>m.slice(1));
+    const coeff = (s.match(/(^|[^a-zA-Z])(-?\d+)\s*[a-z]/g)||[]).length;
+    const signs = (s.match(/[+\-]/g)||[]).length;
+    const consts= (s.match(/(^|[^a-zA-Z])(-?\d+)(?![a-zA-Z0-9]*\^)/g)||[]).length;
+
+    function push(label,cls,count){
+      if(count<=0) return;
+      const t=document.createElement("span");
+      t.className=`token ${cls}`;
+      t.textContent=`${label} ×${count}`;
+      dna.appendChild(t);
+    }
+    push("Variables/Powers","b", Math.max(vars.length, powers.length));
+    push("Coefficients","g", coeff);
+    push("Sign ops","r", signs);
+    push("Constants","y", consts);
+    push("Parentheses","p", paren);
+  }
+  ptext.addEventListener("input", buildDNA);
+
+  // === Simple Graph (y = expression only) ===
+  const expr=$("#expr"), canvas=$("#graph"), ctx=canvas.getContext("2d");
+  function parseExpr(){
+    let v=expr.value.trim();
+    if(!v) return null;
+    v=v.replace(/\s+/g,'');
+    const m=v.match(/^y=(.+)$/i) || v.match(/^f\(x\)=(.+)$/i);
+    if(!m){ alert("Use y = expression or f(x) = expression"); return null; }
+    let rhs=m[1];
+    rhs=rhs.replace(/\^/g,"**")
+           .replace(/sin/gi,"Math.sin")
+           .replace(/cos/gi,"Math.cos")
+           .replace(/tan/gi,"Math.tan")
+           .replace(/sqrt/gi,"Math.sqrt")
+           .replace(/abs/gi,"Math.abs")
+           .replace(/log/gi,"Math.log")
+           .replace(/exp/gi,"Math.exp");
+    try{
+      // create function of x
+      const f=new Function("x","with(Math){return "+rhs+"}");
+      // test
+      void f(0);
+      return f;
+    }catch(e){
+      alert("Could not parse expression. Try simpler syntax.");
+      return null;
+    }
+  }
+  function drawAxes(xmin,xmax,ymin,ymax){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // bg
+    ctx.fillStyle="#0b1016"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle="#223044"; ctx.lineWidth=1;
+    // grid
+    for(let i=-10;i<=10;i++){
+      const x = mapX(i);
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+      const y = mapY(i);
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+    }
+    // axes
+    ctx.strokeStyle="#5d6b82"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(mapX(0),0); ctx.lineTo(mapX(0),canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,mapY(0)); ctx.lineTo(canvas.width,mapY(0)); ctx.stroke();
+
+    function mapX(x){ return (x - xmin)/(xmax-xmin)*canvas.width; }
+    function mapY(y){ return (1-(y - ymin)/(ymax-ymin))*canvas.height; }
+    // return mappers
+    return {mapX, mapY};
+  }
+  function graph(){
+    const f=parseExpr(); if(!f) return;
+    // window
+    const xmin=-10, xmax=10, ymin=-10, ymax=10;
+    const {mapX,mapY}=drawAxes(xmin,xmax,ymin,ymax);
+    // plot
+    ctx.strokeStyle="#46a0ff"; ctx.lineWidth=2;
+    ctx.beginPath();
+    let started=false;
+    for(let px=0; px<=canvas.width; px++){
+      const x = xmin + (xmax-xmin)*(px/canvas.width);
+      let y = f(x);
+      if(!isFinite(y)){ started=false; continue; }
+      const py = mapY(y);
+      if(!started){ ctx.moveTo(px,py); started=true; }
+      else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+  $("#graphBtn").addEventListener("click", graph);
+  $("#clearGraph").addEventListener("click",()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); });
+
+  // Persist notes lightly
+  const ids=["ptype","psub","ptext","blue","green","red","yellow","purple","expr"];
+  ids.forEach(id=>{
+    const el=$("#"+id);
+    const key="v2_"+id;
+    const saved=localStorage.getItem(key); if(saved!==null) el.value=saved;
+    el.addEventListener("input",()=>localStorage.setItem(key,el.value));
+  });
+
+})();
+</script>
+</body>
+</html>
